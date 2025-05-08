@@ -1,0 +1,6 @@
+@Clark_HostAddress = http://localhost:5007
+
+GET {{Clark_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
