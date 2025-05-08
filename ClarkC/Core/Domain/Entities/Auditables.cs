@@ -14,6 +14,7 @@ namespace ClarkC.Core.Domain.Entities
         public string? DeletedBy { get; set; }
         [Column(TypeName = "timestamp with time zone")]
         private DateTime? _dateModified {  get; set; }
+        
         public DateTime? DateModified
         {
             get => _dateModified;

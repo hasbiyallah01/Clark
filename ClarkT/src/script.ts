@@ -1,11 +1,15 @@
-import waitlistActions from "./Controllers/WaitlistController";
+import AuthContoller from "./Controllers/auth.controller";
+import userActions from "./Controllers/user.controller";
+import waitlistActions from "./Controllers/waitlist.controller";
+import middleware from "./Middlewares/Auth.middleware";
+import { upload } from "./Services/Multer.services";
 
 const express = require("express");
 const dotenv = require("dotenv");
 const session = require("express-session");
 const cors = require("cors");
 var bodyParser = require("body-parser");
-const sequelize = require("./Setup/Sequelize.ts");
+// const sequelize = require("./config/Sequelize.ts");
 
 const app = express();
 dotenv.config();
@@ -40,23 +44,45 @@ app.use(
     secret: process.env.SECRET_KEY,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }, //TO-DO: Set to true in production
+    cookie: { secure: process.env.NODE_ENV == 'dev' ? 'false' : 'true' },
   })
 );
+
+
+
+// Auth Routes
+app.post("/api/v1/login", AuthContoller.login);
+app.post("/api/v1/signup", AuthContoller.signup);
 
 app.get("/api/v1/waitlist/:email?", waitlistActions.getUser);
 app.post("/api/v1/waitlist", waitlistActions.addUser);
 app.delete("/api/v1/waitlist", waitlistActions.deleteUser);
 
-const startServer = async() => {
+
+app.post("/api/v1/askQuestion", middleware.verifyToken, userActions.askQuestion);
+app.post("/api/v1/workspace", middleware.verifyToken, userActions.createWorkspace);
+
+app.post("/api/v1/files", middleware.verifyToken, upload.array('files', 10), userActions.addFiles);
+
+app.post("/api/v1/generateMaterial", middleware.verifyToken, userActions.generateMaterial);
+app.post("/api/v1/generateQuiz", middleware.verifyToken, userActions.generateQuiz);
+app.post("/api/v1/generateFlashcards", middleware.verifyToken, userActions.generateFlashcards);
+
+console.log("starting server...");
+
+
+const startServer = async () => {
   try {
-    await sequelize.sync({ alter: true });
+    console.log("DB connection established");
+
+    console.log("Database synced");
+
     app.listen(PORT, () => {
       console.log(`Server is listening on port: ${PORT}`);
     });
   } catch (error) {
-    console.error(error)
+    console.error("Startup error:", error);
   }
-}
+};
 
 startServer();
