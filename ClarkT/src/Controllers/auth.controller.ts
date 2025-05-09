@@ -8,7 +8,8 @@ interface AuthControllerInterface {
     signup: (req: Request, res: Response) => Promise<Response | void>;
 }
 
-const AuthContoller: AuthControllerInterface = {
+
+const AuthController: AuthControllerInterface = {
     login: async (req: Request, res: Response) => {
         const { email, password } = req.body;
         if (!email || !password) {
@@ -28,12 +29,11 @@ const AuthContoller: AuthControllerInterface = {
             if (!isPasswordValid) {
                 return res.status(401).json({ error: "Unauthorized access." });
             }
-   
+
             console.log(user)
             const token = jwt.sign(user, process.env.SECRET_KEY, {
                 expiresIn: "90d",
             });
-             
 
             return res.status(200).json({
                 success: true,
@@ -91,4 +91,4 @@ const AuthContoller: AuthControllerInterface = {
     }
 }
 
-export default AuthContoller;
+export default AuthController;

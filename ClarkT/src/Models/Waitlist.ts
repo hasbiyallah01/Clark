@@ -1,13 +1,13 @@
-import { DataTypes, Model } from "sequelize";
-const sequelize = require("./../config/Sequelize.ts");
+import { DataTypes, Model, Sequelize } from "sequelize";
+import sequelize from "../config/Sequelize";
 
-class userWaitlist extends Model {
+class UserWaitlist extends Model {
   public id!: number;
   public name!: string;
   public email!: string;
 }
 
-userWaitlist.init(
+UserWaitlist.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -26,9 +26,10 @@ userWaitlist.init(
     },
   },
   {
-    sequelize,
+    sequelize: sequelize as Sequelize,
     tableName: "users_waitlist",
+    modelName: "UserWaitlist",
   }
 );
 
-export default userWaitlist;
+export default UserWaitlist;

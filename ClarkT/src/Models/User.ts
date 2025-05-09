@@ -1,10 +1,11 @@
-import { DataTypes, Model } from "sequelize";
-const sequelize = require("./../config/Sequelize.ts");
+import { DataTypes, Model, Sequelize } from "sequelize";
+import sequelize from "../config/Sequelize";
 
 class User extends Model {
   public id!: number;
   public name!: string;
   public email!: string;
+  public password!: string;
   public createdAt!: Date;
   public updatedAt!: Date;
 }
@@ -30,7 +31,7 @@ User.init(
     },
   },
   {
-    sequelize,
+    sequelize: sequelize as Sequelize,
     tableName: "users",
   }
 );

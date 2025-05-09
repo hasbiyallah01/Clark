@@ -6,43 +6,10 @@ import axios from "axios";
 import { uploadFile } from "../Services/Cloudflare.services";
 import { v5 as uuidv5 } from "uuid";
 import PDFFiles from "../Models/PDFFile";
-import { prefileInterface } from "../Interfaces/Index";
+import { afterVerificationMiddlerwareInterface, prefileInterface, userActionsInterface } from "../Interfaces/Index";
 import ImageFiles from "../Models/ImageFile";
+import { formatFileSize } from "../utils/fileFormat.util";
 
-interface userActionsInterface {
-  createWorkspace: (
-    req: Request & afterVerificationMiddlerwareInterface,
-    res: Response
-  ) => Promise<Response | void>;
-  askQuestion: (
-    req: Request & afterVerificationMiddlerwareInterface,
-    res: Response
-  ) => Promise<Response | void>;
-  generateMaterial: (
-    req: Request & afterVerificationMiddlerwareInterface,
-    res: Response
-  ) => Promise<Response | void>;
-  addFiles: (
-    req: Request & afterVerificationMiddlerwareInterface,
-    res: Response
-  ) => Promise<Response | void>;
-  generateQuiz: (
-    req: Request & afterVerificationMiddlerwareInterface,
-    res: Response
-  ) => Promise<Response | void>;
-  generateFlashcards: (
-    req: Request & afterVerificationMiddlerwareInterface,
-    res: Response
-  ) => Promise<Response | void>;
-}
-
-interface afterVerificationMiddlerwareInterface {
-  user: {
-    id: number;
-    name: string;
-    email: string;
-  };
-}
 
 const API_KEY = process.env.GEMINI_API_KEY || "GEMINI_API_KEY";
 const ai = new GoogleGenAI({
@@ -75,6 +42,12 @@ const userActions: userActionsInterface = {
             workspace.id.toString(),
             process.env.UUID_SECRET as string
           );
+
+          Workspace.update(
+            { enc_id: hashedWorkspaceId },
+            { where: { id: workspace.id } }
+          );
+
           return res.status(201).json({
             success: true,
             message: "Workspace created successfully.",
@@ -216,7 +189,7 @@ const userActions: userActionsInterface = {
     res: Response
   ) => {
     try {
-      const { workspaceId } = req.body;
+      const { workspace_id } = req.body;
       const user = req.user;
       let files: prefileInterface[] = [];
 
@@ -224,19 +197,24 @@ const userActions: userActionsInterface = {
         return res.status(401).json({ error: "Unauthorized access." });
       }
 
-      if (!workspaceId) {
+      if (!workspace_id) {
         return res.status(400).json({ error: "Bad request." });
       }
 
-      const hashedWorkspaceId = uuidv5(
-        workspaceId,
-        process.env.UUID_SECRET as string
-      );
+      const workspaceExists = await Workspace.findOne({
+        where: { enc_id: workspace_id, userId: user.id },
+        attributes: ["id"],
+      });
+
+      if (!workspaceExists) {
+        return res.status(404).json({ error: "Workspace not found." });
+      }
+
       if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
         return res.status(400).json({ error: "No files uploaded" });
       }
 
-      const bucket = hashedWorkspaceId;
+      const bucket = workspace_id;
 
       const uploadPromises = (req.files as Express.Multer.File[]).map(
         (file) => {
@@ -251,15 +229,17 @@ const userActions: userActionsInterface = {
             key = key.replace(/[^a-zA-Z0-9.]/g, "_");
 
             let preFile: prefileInterface = {
+              originalname: file.originalname,
+              size: formatFileSize(file.size),
               mimetype: mimeType,
               url: `https://${process.env.R2_ENDPOINT_DOMAIN}/${bucket}/${key}`,
-              workspaceId: workspaceId,
+              workspaceId: workspace_id,
             };
             files.push(preFile);
           }
 
           return uploadFile(
-            hashedWorkspaceId,
+            workspace_id,
             bucket,
             key,
             file.buffer,
@@ -273,12 +253,16 @@ const userActions: userActionsInterface = {
       files.forEach((file, index) => {
         if (file.mimetype.includes("pdf")) {
           PDFFiles.create({
+            fileName: file.originalname,
+            size: file.size,
             workspaceId: file.workspaceId,
             userId: user.id,
             filePath: file.url,
           });
         } else if (file.mimetype.includes("image")) {
           ImageFiles.create({
+            fileName: file.originalname,
+            size: file.size,
             workspaceId: file.workspaceId,
             userId: user.id,
             filePath: file.url,
@@ -497,9 +481,115 @@ const userActions: userActionsInterface = {
       console.error(error);
       return res.status(500).json({ error: "Server error." });
     }
-  }
+  },
 
+  getWorkspace: async (
+    req: Request & afterVerificationMiddlerwareInterface,
+    res: Response
+  ) => {
+    const { id } = req.params;
+    const user = req.user;
 
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized access." });
+    }
+
+    try {
+      if (!id) {
+        const workspaces = await Workspace.findAll({
+          where: { userId: user.id },
+          attributes: {exclude: ['id', 'createdAt', 'updatedAt']}
+        });
+  
+        return res.status(200).json({
+          success: true,
+          message: "Workspaces retrieved successfully.",
+          workspaces,
+        });
+      }
+      else{
+        let workspace = await Workspace.findOne({
+          where: { enc_id: id, userId: user.id },
+          attributes: {exclude: ['id', 'createdAt', 'updatedAt']}
+        });
+
+        if (!workspace) {
+          return res.status(404).json({ error: "Workspace not found." });
+        }
+
+        const imageFiles = await ImageFiles.findAll({
+          where: { workspaceId: workspace?.dataValues.enc_id },
+          attributes: ["filePath", "fileName"],
+        });
+        
+        const pdfFiles = await PDFFiles.findAll({
+          where: { workspaceId: workspace?.dataValues.enc_id },
+          attributes: ["filePath", "fileName", "size"],
+        });
+        
+        
+
+        if (!workspace) {
+          return res.status(404).json({ error: "Workspace not found." });
+        }
+
+        const files = [
+          { imageFiles },
+          { pdfFiles },
+        ];
+      
+        workspace = {
+          ...workspace.get({ plain: true }),
+          files,
+        };
+  
+        return res.status(200).json({
+          success: true,
+          message: "Workspace retrieved successfully.",
+          workspace,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Server error." });
+    }
+  },
+
+  getYoutubeVideo: async (
+    req: Request & afterVerificationMiddlerwareInterface,
+    res: Response
+  ) => {
+    const { id } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized access." });
+    }
+
+    try {
+      if (!id) {
+        return res.status(400).json({ error: "Bad request." });
+      }
+
+      const url = `https://www.googleapis.com/youtube/v3/videos?id=${id}&key=${process.env.YOUTUBE_API_KEY}&part=snippet,contentDetails,statistics`;
+
+      const response = await axios.get(url);
+      const videoData = response.data.items[0];
+
+      if (!videoData) {
+        return res.status(404).json({ error: "Video not found." });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Video retrieved successfully.",
+        videoData,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Server error." });
+    }
+  },
 };
 
 export default userActions;

@@ -3,8 +3,6 @@ import userWaitlist from "../Models/Waitlist";
 import { sendWaitlistMail } from "../Mailing/waitlistWelcome";
 import xss from 'xss';
 import { GoogleGenAI, Type } from "@google/genai";
-import { hasUncaughtExceptionCaptureCallback } from "process";
-import { getDefaultHighWaterMark } from "stream";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "GEMINI_API_KEY" });
 
@@ -82,6 +80,7 @@ const waitlistActions: waitListInterface = {
     if(!email){
       return res.status(400).json({error: "Bad request.", message: "Email is not provided."});
     }
+
     userWaitlist.destroy({where: {email}})
     .then(() => {
       return res.status(204).json({success: true, message: 'User deleted sucessfully.'});
@@ -90,5 +89,7 @@ const waitlistActions: waitListInterface = {
       return res.status(500).json({error: "Error deleting user."});
     })
   },
+
 };
+
 export default waitlistActions;

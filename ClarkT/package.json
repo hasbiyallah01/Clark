@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm install && tsc",
-    "start": "cross-env NODE_ENV=${NODE_ENV:-development} npm run start:mode",
+    "start": "ts-node src/script.ts",
     "start:mode": "node -e \"process.env.NODE_ENV==='production' ? require('child_process').execSync('node dist/server.js', { stdio: 'inherit' }) : require('child_process').execSync('tsc && node dist/server.js', { stdio: 'inherit' })\""
   },
   "keywords": [],
@@ -13,21 +13,37 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.18",
     "@types/express": "^5.0.0",
+    "@types/express-session": "^1.18.1",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.13.8",
+    "@types/sanitize-html": "^2.16.0",
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.806.0",
+    "@google/genai": "^0.12.0",
+    "aws-sdk": "^2.1692.0",
+    "axios": "^1.9.0",
+    "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
+    "file-type": "^20.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.2",
     "mysql2": "^3.12.0",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^6.10.0",
+    "sanitize-html": "^2.16.0",
     "sequelize": "^6.37.5",
+    "uuid": "^11.1.0",
     "xss": "^1.0.15"
   }
 }

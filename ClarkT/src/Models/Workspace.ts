@@ -1,10 +1,10 @@
-import { DataTypes, Model } from "sequelize";
-const sequelize = require("./../config/Sequelize.ts");
+import { DataTypes, Model, Sequelize } from "sequelize";
+import sequelize from "../config/Sequelize";
 
 class Workspace extends Model {
   public id!: number;
   public name!: string;
-  public ownerId!: number;
+  public userId!: number;
   public createdAt!: Date;
   public updatedAt!: Date;
 }
@@ -24,10 +24,16 @@ Workspace.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    enc_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "0",
+    }
   },
   {
-    sequelize,
+    sequelize: sequelize as Sequelize,
     tableName: "workspaces",
+    modelName: "Workspace",
   }
 );
 

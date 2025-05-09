@@ -1,5 +1,5 @@
-import { DataTypes, Model } from "sequelize";
-const sequelize = require("../config/Sequelize.ts");
+import { DataTypes, Model, Sequelize } from "sequelize";
+import sequelize from "../config/Sequelize";
 
 class ImageFiles extends Model {
   public id!: number;
@@ -17,6 +17,10 @@ ImageFiles.init(
       autoIncrement: true,
       primaryKey: true,
     },
+    fileName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     workspaceId: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -29,10 +33,15 @@ ImageFiles.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    size: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
   },
   {
-    sequelize,
+    sequelize: sequelize as Sequelize,
     tableName: "image_files",
+    modelName: "ImageFiles",
   }
 );
 
