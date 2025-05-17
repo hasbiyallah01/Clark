@@ -1,5 +1,6 @@
 import { DataTypes, Model, Sequelize } from "sequelize";
 import sequelize from "../config/Sequelize";
+import { randomBytes } from "crypto";
 
 class ImageFiles extends Model {
   public id!: number;
@@ -46,3 +47,6 @@ ImageFiles.init(
 );
 
 export default ImageFiles;
+
+
+
